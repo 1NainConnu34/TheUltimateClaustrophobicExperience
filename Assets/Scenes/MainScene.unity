@@ -536,7 +536,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: '::'
   currentPhase: 0
   phase1MusicSource: {fileID: 294481665}
-  phase1MusicClip: {fileID: 8300000, guid: 981b258ef0c61eb47be1e5d9af58c588, type: 3}
+  phase1MusicClip: {fileID: 8300000, guid: f6a97074dc08646679b960d03c2dfc0c, type: 3}
   phase1MusicVolume: 0.2
   loopPhase1Music: 1
 --- !u!82 &294481665
