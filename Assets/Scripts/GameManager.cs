@@ -47,22 +47,119 @@ public class GameManager : MonoBehaviour
     [SerializeField, Range(0f, 1f)] private float panneHapticAmplitude = 0.8f;
     [SerializeField, Min(0f)] private float panneHapticDuration = 0.2f;
 
+    [Header("Elevator Floors")]
+    [SerializeField, Min(1)] private int minFloor = 1;
+    [SerializeField, Min(1)] private int maxFloor = 10;
+    [SerializeField, Min(1)] private int currentFloor = 1;
+    [SerializeField, Min(0.1f)] private float secondsPerFloor = 0.75f;
+    [SerializeField] private bool randomPanneDuringTravel = true;
+
+    [Header("Floor Display")]
+    [SerializeField] private TextMesh floorDisplayText;
+
     private Coroutine panneBlinkCoroutine;
+    private Coroutine travelCoroutine;
     private readonly Dictionary<Light, Color> baseLightColors = new Dictionary<Light, Color>();
     private readonly Dictionary<Light, float> baseLightIntensities = new Dictionary<Light, float>();
     private readonly Dictionary<Light, bool> baseLightEnabled = new Dictionary<Light, bool>();
 
+    public int CurrentFloor => currentFloor;
+    public bool IsTraveling => travelCoroutine != null;
+
     void Awake()
     {
         Instance = this;
+        ClampFloorBounds();
         EnsurePhase1MusicSource();
         EnsurePanneSetup();
         EnsureVentilationSource();
+        EnsureFloorDisplayReference();
     }
 
     void Start()
     {
         ApplyAudioForPhase(currentPhase);
+        UpdateFloorDisplay();
+    }
+
+    void ClampFloorBounds()
+    {
+        if (maxFloor < minFloor)
+            maxFloor = minFloor;
+
+        currentFloor = Mathf.Clamp(currentFloor, minFloor, maxFloor);
+    }
+
+    void EnsureFloorDisplayReference()
+    {
+        if (floorDisplayText != null)
+            return;
+
+        GameObject floorDisplayObject = GameObject.Find("FloorDisplay");
+        if (floorDisplayObject != null)
+            floorDisplayText = floorDisplayObject.GetComponent<TextMesh>();
+
+        if (floorDisplayText == null)
+        {
+            Debug.LogWarning("No FloorDisplay TextMesh assigned on GameManager. Create one in scene and assign it.", this);
+        }
+    }
+
+    void UpdateFloorDisplay()
+    {
+        if (floorDisplayText == null)
+            return;
+
+        floorDisplayText.text = currentFloor.ToString("00");
+    }
+
+    public void RequestFloor(int requestedFloor)
+    {
+        if (currentPhase != Phase.Introduction)
+            return;
+
+        ClampFloorBounds();
+        requestedFloor = Mathf.Clamp(requestedFloor, minFloor, maxFloor);
+
+        if (requestedFloor == currentFloor)
+            return;
+
+        if (travelCoroutine != null)
+            return;
+
+        travelCoroutine = StartCoroutine(TravelToFloorRoutine(requestedFloor));
+    }
+
+    IEnumerator TravelToFloorRoutine(int targetFloor)
+    {
+        int direction = targetFloor > currentFloor ? 1 : -1;
+        int panneTriggerFloor = -1;
+
+        if (randomPanneDuringTravel)
+        {
+            int low = Mathf.Min(currentFloor, targetFloor) + 1;
+            int high = Mathf.Max(currentFloor, targetFloor);
+
+            low = Mathf.Max(low, 2);
+            if (low <= high)
+                panneTriggerFloor = Random.Range(low, high + 1);
+        }
+
+        while (currentFloor != targetFloor)
+        {
+            yield return new WaitForSeconds(secondsPerFloor);
+
+            currentFloor += direction;
+            UpdateFloorDisplay();
+
+            if (currentPhase == Phase.Introduction && currentFloor == panneTriggerFloor)
+            {
+                SetPhase(Phase.Panne);
+                break;
+            }
+        }
+
+        travelCoroutine = null;
     }
 
     void EnsurePhase1MusicSource()
@@ -211,6 +308,12 @@ public class GameManager : MonoBehaviour
         {
             StopCoroutine(panneBlinkCoroutine);
             panneBlinkCoroutine = null;
+        }
+
+        if (travelCoroutine != null)
+        {
+            StopCoroutine(travelCoroutine);
+            travelCoroutine = null;
         }
 
         foreach (KeyValuePair<Light, Color> entry in baseLightColors)

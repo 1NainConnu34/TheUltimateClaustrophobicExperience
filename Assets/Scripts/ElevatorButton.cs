@@ -9,7 +9,6 @@ public class ElevatorButton : MonoBehaviour
     [SerializeField] private Material matNormal;
     [SerializeField] private Material matPressed;
     [SerializeField, Min(0f)] private float pressDepth = 0.01f;
-    [SerializeField, Min(0f)] private float panneDelay = 2f;
     [SerializeField] private bool triggerOnDirectTouch = true;
 
     [Header("Exterior Settings")]
@@ -142,8 +141,14 @@ public class ElevatorButton : MonoBehaviour
         }
         else
         {
-            CancelInvoke(nameof(TriggerPanne));
-            Invoke(nameof(TriggerPanne), panneDelay);
+            if (GameManager.Instance == null)
+            {
+                Debug.LogError($"[{nameof(ElevatorButton)}] GameManager.Instance is null.", this);
+            }
+            else
+            {
+                GameManager.Instance.RequestFloor(floorNumber);
+            }
         }
     }
 
@@ -157,22 +162,10 @@ public class ElevatorButton : MonoBehaviour
         if (!isPressed) return;
 
         isPressed = false;
-        CancelInvoke(nameof(TriggerPanne));
 
         if (meshRenderer != null && matNormal != null)
             meshRenderer.material = matNormal;
 
         transform.localPosition = startLocalPosition;
-    }
-
-    void TriggerPanne()
-    {
-        if (GameManager.Instance == null)
-        {
-            Debug.LogError($"[{nameof(ElevatorButton)}] GameManager.Instance is null.", this);
-            return;
-        }
-
-        GameManager.Instance.SetPhase(GameManager.Phase.Panne);
     }
 }
