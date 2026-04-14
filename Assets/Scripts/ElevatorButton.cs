@@ -13,6 +13,9 @@ public class ElevatorButton : MonoBehaviour
 
     [Header("Exterior Settings")]
     [SerializeField] private bool isExteriorButton = false;
+
+    [Header("Door Button Settings")]
+    [SerializeField] private bool isDoorButton = false;
     [SerializeField] private GameObject doorLeft;
     [SerializeField] private GameObject doorRight;
     [SerializeField] private float openDistance = 0.95f;
@@ -34,9 +37,9 @@ public class ElevatorButton : MonoBehaviour
 
         startLocalPosition = transform.localPosition;
 
-        if (isExteriorButton && doorLeft != null)
+        if ((isExteriorButton || isDoorButton) && doorLeft != null)
             doorLeftClosed = doorLeft.transform.localPosition;
-        if (isExteriorButton && doorRight != null)
+        if ((isExteriorButton || isDoorButton) && doorRight != null)
             doorRightClosed = doorRight.transform.localPosition;
     }
 
@@ -63,8 +66,7 @@ public class ElevatorButton : MonoBehaviour
 
     void Update()
     {
-        if (!isExteriorButton) return;
-
+        if (!isExteriorButton && !isDoorButton) return;
         if (doorLeft == null || doorRight == null) return;
 
         Vector3 targetLeft = isOpen
@@ -85,11 +87,8 @@ public class ElevatorButton : MonoBehaviour
     void OnTriggerEnter(Collider other)
     {
         if (!triggerOnDirectTouch) return;
-
         if (!TryGetDirectInteractor(other, out XRDirectInteractor directInteractor)) return;
-
         if (!touchingInteractors.Add(directInteractor)) return;
-
         if (touchingInteractors.Count == 1)
             PressButton("directTouch");
     }
@@ -97,11 +96,8 @@ public class ElevatorButton : MonoBehaviour
     void OnTriggerExit(Collider other)
     {
         if (!triggerOnDirectTouch) return;
-
         if (!TryGetDirectInteractor(other, out XRDirectInteractor directInteractor)) return;
-
         if (!touchingInteractors.Remove(directInteractor)) return;
-
         if (touchingInteractors.Count == 0)
             ReleaseButton();
     }
@@ -139,16 +135,31 @@ public class ElevatorButton : MonoBehaviour
             Invoke(nameof(CloseDoors), 10f);
             Invoke(nameof(ReleaseButton), 0.2f);
         }
+        else if (isDoorButton)
+        {
+            // Bloqué en phase 3, 4
+            if (GameManager.Instance != null &&
+                (GameManager.Instance.currentPhase == GameManager.Phase.Tension ||
+                 GameManager.Instance.currentPhase == GameManager.Phase.Puzzle))
+            {
+                Debug.Log("Porte bloquée — phase active !");
+                Invoke(nameof(ReleaseButton), 0.2f);
+                return;
+            }
+
+            isOpen = !isOpen;
+            Invoke(nameof(ReleaseButton), 0.2f);
+        }
         else
         {
             if (GameManager.Instance == null)
             {
                 Debug.LogError($"[{nameof(ElevatorButton)}] GameManager.Instance is null.", this);
+                return;
             }
-            else
-            {
-                GameManager.Instance.RequestFloor(floorNumber);
-            }
+
+            GameManager.Instance.RequestFloor(floorNumber);
+            Invoke(nameof(ReleaseButton), 0.3f);
         }
     }
 
