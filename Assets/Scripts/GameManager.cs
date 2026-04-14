@@ -7,11 +7,11 @@ public class GameManager : MonoBehaviour
 {
     public enum Phase
     {
-        Introduction,   // Phase 1 
-        Panne,          // Phase 2 
-        Tension,        // Phase 3
-        Puzzle,         // Phase 4 
-        Resolution      // Phase 5 
+        Introduction,
+        Panne,
+        Tension,
+        Puzzle,
+        Resolution
     }
 
     public static GameManager Instance;
@@ -29,6 +29,10 @@ public class GameManager : MonoBehaviour
     [SerializeField, Min(0f)] private float panneLightIntensity = 0.35f;
     [SerializeField, Min(0f)] private float panneBlinkDuration = 1.6f;
     [SerializeField, Min(0.05f)] private float panneBlinkInterval = 0.12f;
+    [SerializeField, Min(0f)] private float delayBeforeTension = 5f;
+
+    [Header("Phase 3 Tension")]
+    [SerializeField] private WallClosing wallClosing;
 
     [Header("Ventilation")]
     [SerializeField] private AudioSource ventilationSource;
@@ -59,15 +63,20 @@ public class GameManager : MonoBehaviour
 
     private Coroutine panneBlinkCoroutine;
     private Coroutine travelCoroutine;
-    private readonly Dictionary<Light, Color> baseLightColors = new Dictionary<Light, Color>();
-    private readonly Dictionary<Light, float> baseLightIntensities = new Dictionary<Light, float>();
-    private readonly Dictionary<Light, bool> baseLightEnabled = new Dictionary<Light, bool>();
+    private readonly Dictionary<Light, Color> baseLightColors = new();
+    private readonly Dictionary<Light, float> baseLightIntensities = new();
+    private readonly Dictionary<Light, bool> baseLightEnabled = new();
 
     public int CurrentFloor => currentFloor;
     public bool IsTraveling => travelCoroutine != null;
 
     void Awake()
     {
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
         Instance = this;
         ClampFloorBounds();
         EnsurePhase1MusicSource();
@@ -84,48 +93,37 @@ public class GameManager : MonoBehaviour
 
     void ClampFloorBounds()
     {
-        if (maxFloor < minFloor)
-            maxFloor = minFloor;
-
+        if (maxFloor < minFloor) maxFloor = minFloor;
         currentFloor = Mathf.Clamp(currentFloor, minFloor, maxFloor);
     }
 
     void EnsureFloorDisplayReference()
     {
-        if (floorDisplayText != null)
-            return;
+        if (floorDisplayText != null) return;
 
         GameObject floorDisplayObject = GameObject.Find("FloorDisplay");
         if (floorDisplayObject != null)
             floorDisplayText = floorDisplayObject.GetComponent<TextMesh>();
 
         if (floorDisplayText == null)
-        {
-            Debug.LogWarning("No FloorDisplay TextMesh assigned on GameManager. Create one in scene and assign it.", this);
-        }
+            Debug.LogWarning("No FloorDisplay TextMesh assigned on GameManager.", this);
     }
 
     void UpdateFloorDisplay()
     {
-        if (floorDisplayText == null)
-            return;
-
+        if (floorDisplayText == null) return;
         floorDisplayText.text = currentFloor.ToString("00");
     }
 
     public void RequestFloor(int requestedFloor)
     {
-        if (currentPhase != Phase.Introduction)
-            return;
+        if (currentPhase != Phase.Introduction) return;
 
         ClampFloorBounds();
         requestedFloor = Mathf.Clamp(requestedFloor, minFloor, maxFloor);
 
-        if (requestedFloor == currentFloor)
-            return;
-
-        if (travelCoroutine != null)
-            return;
+        if (requestedFloor == currentFloor) return;
+        if (travelCoroutine != null) return;
 
         travelCoroutine = StartCoroutine(TravelToFloorRoutine(requestedFloor));
     }
@@ -139,7 +137,6 @@ public class GameManager : MonoBehaviour
         {
             int low = Mathf.Min(currentFloor, targetFloor) + 1;
             int high = Mathf.Max(currentFloor, targetFloor);
-
             low = Mathf.Max(low, 2);
             if (low <= high)
                 panneTriggerFloor = Random.Range(low, high + 1);
@@ -148,14 +145,13 @@ public class GameManager : MonoBehaviour
         while (currentFloor != targetFloor)
         {
             yield return new WaitForSeconds(secondsPerFloor);
-
             currentFloor += direction;
             UpdateFloorDisplay();
 
             if (currentPhase == Phase.Introduction && currentFloor == panneTriggerFloor)
             {
                 SetPhase(Phase.Panne);
-                break;
+                yield break;
             }
         }
 
@@ -166,7 +162,6 @@ public class GameManager : MonoBehaviour
     {
         if (phase1MusicSource == null)
             phase1MusicSource = GetComponent<AudioSource>();
-
         if (phase1MusicSource == null)
             phase1MusicSource = gameObject.AddComponent<AudioSource>();
 
@@ -234,8 +229,7 @@ public class GameManager : MonoBehaviour
 
     void ApplyVentilationForPhase(Phase phase)
     {
-        if (ventilationSource == null)
-            return;
+        if (ventilationSource == null) return;
 
         if (phase == Phase.Introduction)
         {
@@ -243,7 +237,6 @@ public class GameManager : MonoBehaviour
             {
                 if (ventilationSource.isPlaying)
                     ventilationSource.Stop();
-
                 Debug.LogWarning("Ventilation clip is not assigned on GameManager.", this);
                 return;
             }
@@ -256,7 +249,6 @@ public class GameManager : MonoBehaviour
 
             if (!ventilationSource.isPlaying)
                 ventilationSource.Play();
-
             return;
         }
 
@@ -270,14 +262,11 @@ public class GameManager : MonoBehaviour
         baseLightIntensities.Clear();
         baseLightEnabled.Clear();
 
-        if (panneLights == null)
-            return;
+        if (panneLights == null) return;
 
         foreach (Light lightRef in panneLights)
         {
-            if (lightRef == null)
-                continue;
-
+            if (lightRef == null) continue;
             baseLightColors[lightRef] = lightRef.color;
             baseLightIntensities[lightRef] = lightRef.intensity;
             baseLightEnabled[lightRef] = lightRef.enabled;
@@ -300,6 +289,13 @@ public class GameManager : MonoBehaviour
             StopCoroutine(panneBlinkCoroutine);
 
         panneBlinkCoroutine = StartCoroutine(PanneLightsRoutine());
+
+        Invoke(nameof(TriggerTension), delayBeforeTension);
+    }
+
+    void TriggerTension()
+    {
+        SetPhase(Phase.Tension);
     }
 
     void ResetFromPanneEffects()
@@ -316,11 +312,12 @@ public class GameManager : MonoBehaviour
             travelCoroutine = null;
         }
 
+        CancelInvoke(nameof(TriggerTension));
+
         foreach (KeyValuePair<Light, Color> entry in baseLightColors)
         {
             Light lightRef = entry.Key;
-            if (lightRef == null)
-                continue;
+            if (lightRef == null) continue;
 
             lightRef.color = entry.Value;
 
@@ -343,24 +340,18 @@ public class GameManager : MonoBehaviour
         while (elapsed < panneBlinkDuration)
         {
             lightsOn = !lightsOn;
-
             foreach (Light lightRef in panneLights)
             {
-                if (lightRef == null)
-                    continue;
-
+                if (lightRef == null) continue;
                 lightRef.enabled = lightsOn;
             }
-
             yield return new WaitForSeconds(panneBlinkInterval);
             elapsed += panneBlinkInterval;
         }
 
         foreach (Light lightRef in panneLights)
         {
-            if (lightRef == null)
-                continue;
-
+            if (lightRef == null) continue;
             lightRef.enabled = true;
             lightRef.color = panneLightColor;
             lightRef.intensity = panneLightIntensity;
@@ -371,8 +362,7 @@ public class GameManager : MonoBehaviour
 
     void SendPanneHaptics()
     {
-        if (!usePanneHaptics)
-            return;
+        if (!usePanneHaptics) return;
 
         List<InputDevice> devices = new List<InputDevice>();
         InputDeviceCharacteristics characteristics =
@@ -383,15 +373,9 @@ public class GameManager : MonoBehaviour
 
         foreach (InputDevice device in devices)
         {
-            if (!device.isValid)
-                continue;
-
-            if (!device.TryGetHapticCapabilities(out HapticCapabilities capabilities))
-                continue;
-
-            if (!capabilities.supportsImpulse)
-                continue;
-
+            if (!device.isValid) continue;
+            if (!device.TryGetHapticCapabilities(out HapticCapabilities capabilities)) continue;
+            if (!capabilities.supportsImpulse) continue;
             device.SendHapticImpulse(0u, panneHapticAmplitude, panneHapticDuration);
         }
     }
@@ -406,7 +390,6 @@ public class GameManager : MonoBehaviour
                 {
                     if (phase1MusicSource.isPlaying)
                         phase1MusicSource.Stop();
-
                     Debug.LogWarning("Phase 1 ambience clip is not assigned on GameManager.", this);
                 }
                 else
@@ -421,10 +404,6 @@ public class GameManager : MonoBehaviour
                         phase1MusicSource.Play();
                 }
             }
-            else
-            {
-                Debug.LogWarning("Phase 1 ambience source is not assigned on GameManager.", this);
-            }
 
             ApplyVentilationForPhase(phase);
             return;
@@ -438,8 +417,7 @@ public class GameManager : MonoBehaviour
 
     public void SetPhase(Phase newPhase)
     {
-        if (currentPhase == newPhase)
-            return;
+        if (currentPhase == newPhase) return;
 
         currentPhase = newPhase;
         Debug.Log("Nouvelle phase : " + newPhase);
@@ -449,18 +427,20 @@ public class GameManager : MonoBehaviour
         {
             case Phase.Introduction:
                 ResetFromPanneEffects();
+                if (wallClosing != null) wallClosing.ResetWalls();
                 break;
             case Phase.Panne:
                 StartPanneEffects();
                 break;
             case Phase.Tension:
-                // TODO: démarrer le rétrécissement des murs
+                if (wallClosing != null) wallClosing.StartClosing();
                 break;
             case Phase.Puzzle:
-                // TODO: ouvrir le panneau de maintenance
+                // TO-DO
                 break;
             case Phase.Resolution:
                 ResetFromPanneEffects();
+                if (wallClosing != null) wallClosing.ResetWalls();
                 break;
         }
     }

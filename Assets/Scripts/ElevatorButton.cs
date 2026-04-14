@@ -137,7 +137,6 @@ public class ElevatorButton : MonoBehaviour
         }
         else if (isDoorButton)
         {
-            // Bloqué en phase 3, 4
             if (GameManager.Instance != null &&
                 (GameManager.Instance.currentPhase == GameManager.Phase.Tension ||
                  GameManager.Instance.currentPhase == GameManager.Phase.Puzzle))
