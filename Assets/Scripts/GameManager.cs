@@ -436,7 +436,8 @@ public class GameManager : MonoBehaviour
                 if (wallClosing != null) wallClosing.StartClosing();
                 break;
             case Phase.Puzzle:
-                // TO-DO
+                if (wallClosing != null) wallClosing.StopClosing();
+                if (PuzzleManager.Instance != null) PuzzleManager.Instance.ActivatePuzzle();
                 break;
             case Phase.Resolution:
                 ResetFromPanneEffects();
