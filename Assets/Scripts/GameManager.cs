@@ -35,6 +35,10 @@ public class GameManager : MonoBehaviour
     [SerializeField] private WallClosing wallClosing;
     [SerializeField, Min(0f)] private float puzzleTimeLimit = 30f;
 
+    [Header("Timer")]
+    [SerializeField] private GameObject timerCanvas;
+    [SerializeField] private TMPro.TextMeshProUGUI timerText;
+
     [Header("Phase 5 Resolution")]
     [SerializeField] private GameObject gameOverCanvas;
     [SerializeField] private GameObject victoryCanvas;
@@ -104,6 +108,9 @@ public class GameManager : MonoBehaviour
 
         if (victoryCanvas != null)
             victoryCanvas.SetActive(false);
+
+        if (timerCanvas != null)
+            timerCanvas.SetActive(false);
 
         if (doorLeft != null) doorLeftStart = doorLeft.transform.localPosition;
         if (doorRight != null) doorRightStart = doorRight.transform.localPosition;
@@ -510,6 +517,39 @@ public class GameManager : MonoBehaviour
         if (wallClosing != null) wallClosing.StartClosing();
     }
 
+    IEnumerator PuzzleTimerRoutine()
+    {
+        if (timerCanvas != null)
+            timerCanvas.SetActive(true);
+
+        float timeLeft = puzzleTimeLimit;
+
+        while (timeLeft > 0f)
+        {
+            if (currentPhase != Phase.Puzzle)
+            {
+                if (timerCanvas != null)
+                    timerCanvas.SetActive(false);
+                yield break;
+            }
+
+            timeLeft -= Time.deltaTime;
+
+            if (timerText != null)
+                timerText.text = Mathf.CeilToInt(timeLeft).ToString();
+
+            if (timerText != null)
+                timerText.color = timeLeft <= 10f ? Color.red : Color.white;
+
+            yield return null;
+        }
+
+        if (timerCanvas != null)
+            timerCanvas.SetActive(false);
+
+        ResumWalls();
+    }
+
     public void SetPhase(Phase newPhase)
     {
         if (currentPhase == newPhase) return;
@@ -535,7 +575,7 @@ public class GameManager : MonoBehaviour
             case Phase.Puzzle:
                 if (wallClosing != null) wallClosing.StopClosing();
                 if (PuzzleManager.Instance != null) PuzzleManager.Instance.ActivatePuzzle();
-                Invoke(nameof(ResumWalls), puzzleTimeLimit);
+                StartCoroutine(PuzzleTimerRoutine());
                 break;
             case Phase.Resolution:
                 if (isBadEnding)
