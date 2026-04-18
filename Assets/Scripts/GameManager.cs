@@ -484,7 +484,12 @@ public class GameManager : MonoBehaviour
         {
             GameObject player = GameObject.Find("XR Origin (VR)");
             if (player != null)
-                player.transform.position = gameOverPlayerPosition.position;
+            {
+                Vector3 cameraOffset = Camera.main.transform.position - player.transform.position;
+                cameraOffset.y = 0; 
+
+                player.transform.position = gameOverPlayerPosition.position - cameraOffset;
+            }
         }
 
         Debug.Log("Mauvaise fin — écrasé !");
