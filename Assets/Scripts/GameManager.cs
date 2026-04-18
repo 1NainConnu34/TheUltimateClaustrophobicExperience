@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.XR;
+using TMPro;
 
 public class GameManager : MonoBehaviour
 {
@@ -74,7 +75,7 @@ public class GameManager : MonoBehaviour
     [SerializeField] private bool randomPanneDuringTravel = true;
 
     [Header("Floor Display")]
-    [SerializeField] private TextMesh floorDisplayText;
+    [SerializeField] private TextMeshProUGUI floorDisplayText;
 
     private Coroutine panneBlinkCoroutine;
     private Coroutine travelCoroutine;
@@ -148,12 +149,12 @@ public class GameManager : MonoBehaviour
     {
         if (floorDisplayText != null) return;
 
-        GameObject floorDisplayObject = GameObject.Find("FloorDisplay");
+        GameObject floorDisplayObject = GameObject.Find("FloorDisplayText");
         if (floorDisplayObject != null)
-            floorDisplayText = floorDisplayObject.GetComponent<TextMesh>();
+            floorDisplayText = floorDisplayObject.GetComponent<TextMeshProUGUI>();
 
         if (floorDisplayText == null)
-            Debug.LogWarning("No FloorDisplay TextMesh assigned on GameManager.", this);
+            Debug.LogWarning("No FloorDisplay TextMeshProUGUI assigned on GameManager.", this);
     }
 
     void UpdateFloorDisplay()
