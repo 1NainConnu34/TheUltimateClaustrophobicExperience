@@ -37,6 +37,7 @@ public class GameManager : MonoBehaviour
 
     [Header("Phase 5 Resolution")]
     [SerializeField] private GameObject gameOverCanvas;
+    [SerializeField] private GameObject victoryCanvas;
     [SerializeField] private Transform gameOverPlayerPosition;
     [SerializeField] private GameObject doorLeft;
     [SerializeField] private GameObject doorRight;
@@ -100,6 +101,9 @@ public class GameManager : MonoBehaviour
 
         if (gameOverCanvas != null)
             gameOverCanvas.SetActive(false);
+
+        if (victoryCanvas != null)
+            victoryCanvas.SetActive(false);
 
         if (doorLeft != null) doorLeftStart = doorLeft.transform.localPosition;
         if (doorRight != null) doorRightStart = doorRight.transform.localPosition;
@@ -485,7 +489,14 @@ public class GameManager : MonoBehaviour
         if (wallClosing != null) wallClosing.ResetWalls();
         if (PuzzleManager.Instance != null) PuzzleManager.Instance.HidePuzzle();
         Invoke(nameof(OpenDoors), delayBeforeOpen);
+        Invoke(nameof(ShowVictory), delayBeforeOpen);
         Debug.Log("Bonne fin — portes qui s'ouvrent !");
+    }
+
+    void ShowVictory()
+    {
+        if (victoryCanvas != null)
+            victoryCanvas.SetActive(true);
     }
 
     void OpenDoors()
