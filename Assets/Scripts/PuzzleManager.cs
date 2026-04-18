@@ -26,6 +26,12 @@ public class PuzzleManager : MonoBehaviour
             maintenancePanel.SetActive(false);
     }
 
+    public void HidePuzzle()
+    {
+        if (maintenancePanel != null)
+            maintenancePanel.SetActive(false);
+    }
+
     public void ActivatePuzzle()
     {
         if (puzzleActive) return;
@@ -67,6 +73,6 @@ public class PuzzleManager : MonoBehaviour
 
     void TriggerResolution()
     {
-        GameManager.Instance.SetPhase(GameManager.Phase.Resolution);
+        GameManager.Instance.TriggerGoodEnding();
     }
 }

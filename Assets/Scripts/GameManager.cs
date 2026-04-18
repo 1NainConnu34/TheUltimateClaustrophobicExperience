@@ -33,6 +33,16 @@ public class GameManager : MonoBehaviour
 
     [Header("Phase 3 Tension")]
     [SerializeField] private WallClosing wallClosing;
+    [SerializeField, Min(0f)] private float puzzleTimeLimit = 30f;
+
+    [Header("Phase 5 Resolution")]
+    [SerializeField] private GameObject gameOverCanvas;
+    [SerializeField] private Transform gameOverPlayerPosition;
+    [SerializeField] private GameObject doorLeft;
+    [SerializeField] private GameObject doorRight;
+    [SerializeField] private float doorOpenDistance = 1.5f;
+    [SerializeField] private float doorOpenSpeed = 1.0f;
+    [SerializeField] private float delayBeforeOpen = 2f;
 
     [Header("Ventilation")]
     [SerializeField] private AudioSource ventilationSource;
@@ -63,6 +73,10 @@ public class GameManager : MonoBehaviour
 
     private Coroutine panneBlinkCoroutine;
     private Coroutine travelCoroutine;
+    private bool doorsOpening = false;
+    private bool isBadEnding = false;
+    private Vector3 doorLeftStart;
+    private Vector3 doorRightStart;
     private readonly Dictionary<Light, Color> baseLightColors = new();
     private readonly Dictionary<Light, float> baseLightIntensities = new();
     private readonly Dictionary<Light, bool> baseLightEnabled = new();
@@ -83,12 +97,34 @@ public class GameManager : MonoBehaviour
         EnsurePanneSetup();
         EnsureVentilationSource();
         EnsureFloorDisplayReference();
+
+        if (gameOverCanvas != null)
+            gameOverCanvas.SetActive(false);
+
+        if (doorLeft != null) doorLeftStart = doorLeft.transform.localPosition;
+        if (doorRight != null) doorRightStart = doorRight.transform.localPosition;
     }
 
     void Start()
     {
         ApplyAudioForPhase(currentPhase);
         UpdateFloorDisplay();
+    }
+
+    void Update()
+    {
+        if (!doorsOpening) return;
+        if (doorLeft == null || doorRight == null) return;
+
+        doorLeft.transform.localPosition = Vector3.Lerp(
+            doorLeft.transform.localPosition,
+            doorLeftStart + new Vector3(-doorOpenDistance, 0, 0),
+            Time.deltaTime * doorOpenSpeed);
+
+        doorRight.transform.localPosition = Vector3.Lerp(
+            doorRight.transform.localPosition,
+            doorRightStart + new Vector3(doorOpenDistance, 0, 0),
+            Time.deltaTime * doorOpenSpeed);
     }
 
     void ClampFloorBounds()
@@ -415,6 +451,54 @@ public class GameManager : MonoBehaviour
         ApplyVentilationForPhase(phase);
     }
 
+    public void TriggerBadEnding()
+    {
+        isBadEnding = true;
+        SetPhase(Phase.Resolution);
+    }
+
+    public void TriggerGoodEnding()
+    {
+        CancelInvoke(nameof(ResumWalls));
+        isBadEnding = false;
+        SetPhase(Phase.Resolution);
+    }
+
+    void StartBadEnding()
+    {
+        if (gameOverCanvas != null)
+            gameOverCanvas.SetActive(true);
+
+        if (gameOverPlayerPosition != null)
+        {
+            GameObject player = GameObject.Find("XR Origin (VR)");
+            if (player != null)
+                player.transform.position = gameOverPlayerPosition.position;
+        }
+
+        Debug.Log("Mauvaise fin — écrasé !");
+    }
+
+    void StartGoodEnding()
+    {
+        ResetFromPanneEffects();
+        if (wallClosing != null) wallClosing.ResetWalls();
+        if (PuzzleManager.Instance != null) PuzzleManager.Instance.HidePuzzle();
+        Invoke(nameof(OpenDoors), delayBeforeOpen);
+        Debug.Log("Bonne fin — portes qui s'ouvrent !");
+    }
+
+    void OpenDoors()
+    {
+        doorsOpening = true;
+    }
+
+    void ResumWalls()
+    {
+        if (currentPhase != Phase.Puzzle) return;
+        if (wallClosing != null) wallClosing.StartClosing();
+    }
+
     public void SetPhase(Phase newPhase)
     {
         if (currentPhase == newPhase) return;
@@ -428,6 +512,8 @@ public class GameManager : MonoBehaviour
             case Phase.Introduction:
                 ResetFromPanneEffects();
                 if (wallClosing != null) wallClosing.ResetWalls();
+                doorsOpening = false;
+                if (gameOverCanvas != null) gameOverCanvas.SetActive(false);
                 break;
             case Phase.Panne:
                 StartPanneEffects();
@@ -438,10 +524,13 @@ public class GameManager : MonoBehaviour
             case Phase.Puzzle:
                 if (wallClosing != null) wallClosing.StopClosing();
                 if (PuzzleManager.Instance != null) PuzzleManager.Instance.ActivatePuzzle();
+                Invoke(nameof(ResumWalls), puzzleTimeLimit);
                 break;
             case Phase.Resolution:
-                ResetFromPanneEffects();
-                if (wallClosing != null) wallClosing.ResetWalls();
+                if (isBadEnding)
+                    StartBadEnding();
+                else
+                    StartGoodEnding();
                 break;
         }
     }

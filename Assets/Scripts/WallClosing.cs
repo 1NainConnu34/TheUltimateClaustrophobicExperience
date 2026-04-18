@@ -80,7 +80,7 @@ public class WallClosing : MonoBehaviour
         if (distanceMoved >= maxClosingDistance)
         {
             StopClosing();
-            GameManager.Instance.SetPhase(GameManager.Phase.Resolution);
+            GameManager.Instance.TriggerBadEnding();
             return;
         }
 
