@@ -13,6 +13,7 @@ public class PuzzleManager : MonoBehaviour
     [SerializeField] private AudioClip successClip;
     [SerializeField] private AudioSource errorSource;
     [SerializeField] private AudioClip errorClip;
+    [SerializeField] private AudioSource elevatorAmbiance;
 
     private bool puzzleSolved = false;
     private bool puzzleActive = false;
@@ -65,7 +66,7 @@ public class PuzzleManager : MonoBehaviour
     {
         puzzleSolved = true;
         puzzleActive = false;
-
+        elevatorAmbiance.Stop();
         Debug.Log("Puzzle résolu !");
 
         Invoke(nameof(TriggerResolution), 1.5f);

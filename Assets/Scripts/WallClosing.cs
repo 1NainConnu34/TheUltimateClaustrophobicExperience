@@ -15,6 +15,7 @@ public class WallClosing : MonoBehaviour
     [SerializeField] private AudioSource creakingSource;
     [SerializeField] private AudioClip creakingClip;
     [SerializeField, Range(0f, 1f)] private float creakingVolume = 0.6f;
+    [SerializeField] private AudioSource elevatorAmbiance;
 
     private Vector3 wallLeftStart;
     private Vector3 wallRightStart;
@@ -51,7 +52,9 @@ public class WallClosing : MonoBehaviour
             creakingSource.loop = true;
             creakingSource.volume = creakingVolume;
             if (!creakingSource.isPlaying)
+            {
                 creakingSource.Play();
+            }
         }
     }
 
@@ -60,7 +63,10 @@ public class WallClosing : MonoBehaviour
         isClosing = false;
 
         if (creakingSource != null && creakingSource.isPlaying)
+        {
             creakingSource.Stop();
+            elevatorAmbiance.Play();
+        }
     }
 
     public void ResetWalls()
