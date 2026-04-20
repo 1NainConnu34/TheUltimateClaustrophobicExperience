@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.XR;
 using TMPro;
 
@@ -77,6 +78,15 @@ public class GameManager : MonoBehaviour
     [Header("Floor Display")]
     [SerializeField] private TextMeshProUGUI floorDisplayText;
 
+    [Header("VR Locomotion")]
+    [SerializeField] private bool enableLeftStickLocomotion = true;
+    [SerializeField] private Transform xrRigRoot;
+    [SerializeField] private CharacterController xrCharacterController;
+    [SerializeField, Min(0.1f)] private float locomotionSpeed = 1.8f;
+    [SerializeField] private bool useLocomotionGravity = false;
+    [SerializeField, Min(0.5f)] private float minPlayerHeight = 1.1f;
+    [SerializeField, Min(1f)] private float maxPlayerHeight = 2.1f;
+
     private Coroutine panneBlinkCoroutine;
     private Coroutine travelCoroutine;
     private bool doorsOpening = false;
@@ -86,6 +96,9 @@ public class GameManager : MonoBehaviour
     private readonly Dictionary<Light, Color> baseLightColors = new();
     private readonly Dictionary<Light, float> baseLightIntensities = new();
     private readonly Dictionary<Light, bool> baseLightEnabled = new();
+    private Transform xrHead;
+    private InputAction leftStickMoveAction;
+    private float locomotionVerticalVelocity;
 
     public int CurrentFloor => currentFloor;
     public bool IsTraveling => travelCoroutine != null;
@@ -103,6 +116,7 @@ public class GameManager : MonoBehaviour
         EnsurePanneSetup();
         EnsureVentilationSource();
         EnsureFloorDisplayReference();
+        EnsureXrLocomotionSetup();
 
         if (gameOverCanvas != null)
             gameOverCanvas.SetActive(false);
@@ -125,6 +139,8 @@ public class GameManager : MonoBehaviour
 
     void Update()
     {
+        UpdateLeftStickLocomotion();
+
         if (!doorsOpening) return;
         if (doorLeft == null || doorRight == null) return;
 
@@ -137,6 +153,115 @@ public class GameManager : MonoBehaviour
             doorRight.transform.localPosition,
             doorRightStart + new Vector3(doorOpenDistance, 0, 0),
             Time.deltaTime * doorOpenSpeed);
+    }
+
+    void OnEnable()
+    {
+        if (leftStickMoveAction != null)
+            leftStickMoveAction.Enable();
+    }
+
+    void OnDisable()
+    {
+        if (leftStickMoveAction != null)
+            leftStickMoveAction.Disable();
+    }
+
+    void OnDestroy()
+    {
+        leftStickMoveAction?.Dispose();
+    }
+
+    void EnsureXrLocomotionSetup()
+    {
+        if (!enableLeftStickLocomotion) return;
+
+        if (xrRigRoot == null)
+        {
+            GameObject xrRigObject = GameObject.Find("XR Origin (VR)");
+            if (xrRigObject != null)
+                xrRigRoot = xrRigObject.transform;
+        }
+
+        if (xrRigRoot == null)
+        {
+            Debug.LogWarning("XR rig not found. Left-stick locomotion disabled.", this);
+            enableLeftStickLocomotion = false;
+            return;
+        }
+
+        if (xrHead == null)
+        {
+            Camera xrCamera = xrRigRoot.GetComponentInChildren<Camera>(true);
+            if (xrCamera != null)
+                xrHead = xrCamera.transform;
+        }
+
+        if (xrHead == null)
+        {
+            Debug.LogWarning("XR camera not found. Left-stick locomotion disabled.", this);
+            enableLeftStickLocomotion = false;
+            return;
+        }
+
+        if (xrCharacterController == null)
+            xrCharacterController = xrRigRoot.GetComponent<CharacterController>();
+
+        if (xrCharacterController == null)
+            xrCharacterController = xrRigRoot.gameObject.AddComponent<CharacterController>();
+
+        if (xrCharacterController.radius < 0.15f)
+            xrCharacterController.radius = 0.2f;
+
+        xrCharacterController.minMoveDistance = 0f;
+
+        leftStickMoveAction ??= new InputAction(name: "LeftStickMove", type: InputActionType.Value);
+
+        if (leftStickMoveAction.bindings.Count == 0)
+        {
+            leftStickMoveAction.AddBinding("<XRController>{LeftHand}/primary2DAxis");
+            leftStickMoveAction.AddBinding("<Gamepad>/leftStick");
+        }
+
+        leftStickMoveAction.Enable();
+    }
+
+    void UpdateLeftStickLocomotion()
+    {
+        if (!enableLeftStickLocomotion) return;
+        if (xrRigRoot == null || xrHead == null || xrCharacterController == null || leftStickMoveAction == null) return;
+
+        Vector3 headLocalPosition = xrRigRoot.InverseTransformPoint(xrHead.position);
+        float clampedHeight = Mathf.Clamp(headLocalPosition.y, minPlayerHeight, maxPlayerHeight);
+
+        xrCharacterController.height = clampedHeight;
+        xrCharacterController.center = new Vector3(
+            headLocalPosition.x,
+            (clampedHeight * 0.5f) + xrCharacterController.skinWidth,
+            headLocalPosition.z);
+
+        Vector2 moveInput = leftStickMoveAction.ReadValue<Vector2>();
+
+        Vector3 headForward = Vector3.ProjectOnPlane(xrHead.forward, Vector3.up).normalized;
+        Vector3 headRight = Vector3.ProjectOnPlane(xrHead.right, Vector3.up).normalized;
+
+        Vector3 planarVelocity = (headForward * moveInput.y + headRight * moveInput.x) * locomotionSpeed;
+
+        if (useLocomotionGravity)
+        {
+            if (xrCharacterController.isGrounded && locomotionVerticalVelocity < 0f)
+                locomotionVerticalVelocity = -1f;
+
+            locomotionVerticalVelocity += Physics.gravity.y * Time.deltaTime;
+            planarVelocity.y = locomotionVerticalVelocity;
+        }
+        else
+        {
+            locomotionVerticalVelocity = 0f;
+            planarVelocity.y = 0f;
+        }
+
+        xrCharacterController.Move(planarVelocity * Time.deltaTime);
     }
 
     void ClampFloorBounds()
@@ -412,17 +537,17 @@ public class GameManager : MonoBehaviour
     {
         if (!usePanneHaptics) return;
 
-        List<InputDevice> devices = new List<InputDevice>();
-        InputDeviceCharacteristics characteristics =
-            InputDeviceCharacteristics.HeldInHand |
-            InputDeviceCharacteristics.Controller;
+        List<UnityEngine.XR.InputDevice> devices = new List<UnityEngine.XR.InputDevice>();
+        UnityEngine.XR.InputDeviceCharacteristics characteristics =
+            UnityEngine.XR.InputDeviceCharacteristics.HeldInHand |
+            UnityEngine.XR.InputDeviceCharacteristics.Controller;
 
-        InputDevices.GetDevicesWithCharacteristics(characteristics, devices);
+        UnityEngine.XR.InputDevices.GetDevicesWithCharacteristics(characteristics, devices);
 
-        foreach (InputDevice device in devices)
+        foreach (UnityEngine.XR.InputDevice device in devices)
         {
             if (!device.isValid) continue;
-            if (!device.TryGetHapticCapabilities(out HapticCapabilities capabilities)) continue;
+            if (!device.TryGetHapticCapabilities(out UnityEngine.XR.HapticCapabilities capabilities)) continue;
             if (!capabilities.supportsImpulse) continue;
             device.SendHapticImpulse(0u, panneHapticAmplitude, panneHapticDuration);
         }
