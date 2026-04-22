@@ -14,6 +14,7 @@ public class PuzzleManager : MonoBehaviour
     [SerializeField] private AudioSource errorSource;
     [SerializeField] private AudioClip errorClip;
     [SerializeField] private AudioSource elevatorAmbiance;
+    [SerializeField] private AudioSource PuzzleStartSound;
 
     private bool puzzleSolved = false;
     private bool puzzleActive = false;
@@ -43,7 +44,8 @@ public class PuzzleManager : MonoBehaviour
 
         if (maintenancePanel != null)
             maintenancePanel.SetActive(true);
-
+        PuzzleStartSound.Play();
+        elevatorAmbiance.Play();
         Debug.Log("Puzzle activé !");
     }
 
