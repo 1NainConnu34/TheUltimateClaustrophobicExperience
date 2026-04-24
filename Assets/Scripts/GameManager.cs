@@ -530,6 +530,31 @@ public class GameManager : MonoBehaviour
             lightRef.intensity = panneLightIntensity;
         }
 
+        for (int i = 0;i<5;i++)
+        {
+            float waitTime = Random.Range(5f, 20f); // slower random blinking
+            yield return new WaitForSeconds(waitTime);
+            elapsed = 0f;
+            lightsOn = true;
+            foreach (Light lightRef2 in panneLights)
+            {
+                if (lightRef2 == null) continue;
+                lightRef2.enabled = true;
+            }
+            while (elapsed < panneBlinkDuration)
+            {
+                lightsOn = !lightsOn;
+                foreach (Light lightRef2 in panneLights)
+                {
+                    if (lightRef2 == null) continue;
+                    lightRef2.enabled = lightsOn;
+                }
+                yield return new WaitForSeconds(panneBlinkInterval);
+                elapsed += panneBlinkInterval;
+            }
+            lightsOn = true;
+        }
+
         panneBlinkCoroutine = null;
     }
 
