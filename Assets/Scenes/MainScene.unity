@@ -1177,7 +1177,7 @@ MonoBehaviour:
   panneBlinkInterval: 0.12
   delayBeforeTension: 5
   wallClosing: {fileID: 145537772}
-  puzzleTimeLimit: 30
+  puzzleTimeLimit: 15
   timerCanvas: {fileID: 1445426875}
   timerText: {fileID: 1758639961}
   gameOverCanvas: {fileID: 1873112720}
