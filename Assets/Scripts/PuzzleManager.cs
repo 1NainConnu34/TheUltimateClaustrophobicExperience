@@ -96,17 +96,8 @@ public class PuzzleManager : MonoBehaviour
 
     void StageCompleted()
     {
-        currentStage++;
-
-        if (currentStage >= stages.Length)
-        {
-            AllStagesCompleted();
-        }
-        else
-        {
-            Debug.Log($"Stage {currentStage} complété ! Passage au stage {currentStage + 1}");
-            Invoke(nameof(NextStage), 1f);
-        }
+        // Complete puzzle after first stage (no retry loop)
+        AllStagesCompleted();
     }
 
     void NextStage()
