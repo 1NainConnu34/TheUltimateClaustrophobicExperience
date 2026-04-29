@@ -694,12 +694,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::WallClosing
   wallLeft: {fileID: 952065876}
   wallRight: {fileID: 365234829}
-  closingSpeed: 0.02
+  closingSpeed: 0.03
   maxClosingDistance: 0.8
-  puzzleTriggerDistance: 0.5
+  puzzleTriggerDistance: 0.65
   creakingSource: {fileID: 0}
   creakingClip: {fileID: 8300000, guid: ad9c83a5d0fadc6449af3237d18178a5, type: 3}
-  creakingVolume: 0.6
+  creakingVolume: 1
 --- !u!1 &189995206
 GameObject:
   m_ObjectHideFlags: 0
@@ -1169,9 +1169,10 @@ MonoBehaviour:
   phase1MusicClip: {fileID: 8300000, guid: f6a97074dc08646679b960d03c2dfc0c, type: 3}
   phase1MusicVolume: 0.2
   loopPhase1Music: 1
-  panneLights: []
-  panneLightColor: {r: 0.75, g: 0.08, b: 0.08, a: 1}
-  panneLightIntensity: 0.35
+  panneLights:
+  - {fileID: 229117943}
+  panneLightColor: {r: 0.54509807, g: 0, b: 0, a: 1}
+  panneLightIntensity: 0.5
   panneBlinkDuration: 1.6
   panneBlinkInterval: 0.12
   delayBeforeTension: 5
@@ -1196,7 +1197,7 @@ MonoBehaviour:
   ventilationMaxDistance: 8
   panneSfxSource: {fileID: 0}
   panneCreakClip: {fileID: 8300000, guid: d8e7381ef490471fc88770b2c007c1bd, type: 3}
-  panneCreakVolume: 0.9
+  panneCreakVolume: 1
   usePanneHaptics: 1
   panneHapticAmplitude: 0.8
   panneHapticDuration: 0.2
