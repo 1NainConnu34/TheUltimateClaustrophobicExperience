@@ -673,7 +673,7 @@ public class GameManager : MonoBehaviour
         ResetFromPanneEffects();
         if (wallClosing != null) wallClosing.ResetWalls();
         if (PuzzleManager.Instance != null) PuzzleManager.Instance.HidePuzzle();
-        Invoke(nameof(OpenDoors), delayBeforeOpen);
+        Invoke(nameof(OpenDoors), delayBeforeOpen + 3f);
         Invoke(nameof(ShowVictory), delayBeforeOpen);
         Debug.Log("Bonne fin — portes qui s'ouvrent !");
     }

@@ -1185,8 +1185,8 @@ MonoBehaviour:
   gameOverPlayerPosition: {fileID: 1912482562}
   doorLeft: {fileID: 1630995443}
   doorRight: {fileID: 889998663}
-  doorOpenDistance: 3
-  doorOpenSpeed: 0.5
+  doorOpenDistance: 4.5
+  doorOpenSpeed: 0.3
   delayBeforeOpen: 1
   ventilationSource: {fileID: 0}
   ventilationClip: {fileID: 8300000, guid: 4fa019128f14ef073b69f206a261b885, type: 3}

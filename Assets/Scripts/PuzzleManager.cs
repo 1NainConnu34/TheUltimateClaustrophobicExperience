@@ -48,7 +48,7 @@ public class PuzzleManager : MonoBehaviour
         elevatorAmbiance.Play();
 
         // TEMP — à supprimer après les tests
-       // Invoke(nameof(PuzzleSolved), 5f);
+        Invoke(nameof(PuzzleSolved), 5f);
 
         Debug.Log("Puzzle activé !");
     }

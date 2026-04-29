@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections;
 
 public class WallClosing : MonoBehaviour
 {
@@ -72,9 +73,47 @@ public class WallClosing : MonoBehaviour
         StopClosing();
         distanceMoved = 0f;
         puzzleTriggered = false;
+        StartCoroutine(WallsOpenRoutine());
+    }
 
-        if (wallLeft != null) wallLeft.localPosition = wallLeftStart;
-        if (wallRight != null) wallRight.localPosition = wallRightStart;
+    IEnumerator WallsOpenRoutine()
+    {
+        while (true)
+        {
+            bool leftDone = false;
+            bool rightDone = false;
+
+            if (wallLeft != null)
+            {
+                wallLeft.localPosition = Vector3.Lerp(
+                    wallLeft.localPosition,
+                    wallLeftStart,
+                    Time.deltaTime * closingSpeed * 20f
+                );
+                leftDone = Vector3.Distance(wallLeft.localPosition, wallLeftStart) < 0.01f;
+            }
+            else leftDone = true;
+
+            if (wallRight != null)
+            {
+                wallRight.localPosition = Vector3.Lerp(
+                    wallRight.localPosition,
+                    wallRightStart,
+                    Time.deltaTime * closingSpeed * 20f
+                );
+                rightDone = Vector3.Distance(wallRight.localPosition, wallRightStart) < 0.01f;
+            }
+            else rightDone = true;
+
+            if (leftDone && rightDone)
+            {
+                if (wallLeft != null) wallLeft.localPosition = wallLeftStart;
+                if (wallRight != null) wallRight.localPosition = wallRightStart;
+                yield break;
+            }
+
+            yield return null;
+        }
     }
 
     void Update()
