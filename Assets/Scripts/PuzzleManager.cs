@@ -46,7 +46,19 @@ public class PuzzleManager : MonoBehaviour
             maintenancePanel.SetActive(true);
         PuzzleStartSound.Play();
         elevatorAmbiance.Play();
+
+        // TEMP — à supprimer après les tests
+       // Invoke(nameof(PuzzleSolved), 5f);
+
         Debug.Log("Puzzle activé !");
+    }
+
+    public void StopAmbiance()
+    {
+        if (elevatorAmbiance != null && elevatorAmbiance.isPlaying)
+            elevatorAmbiance.Stop();
+        if (PuzzleStartSound != null && PuzzleStartSound.isPlaying)
+            PuzzleStartSound.Stop();
     }
 
     public void TryConnectCable(int cableID, PuzzleCable cable)

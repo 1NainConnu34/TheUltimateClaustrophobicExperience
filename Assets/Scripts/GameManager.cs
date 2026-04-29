@@ -647,6 +647,9 @@ public class GameManager : MonoBehaviour
 
     void StartBadEnding()
     {
+        if (PuzzleManager.Instance != null)
+            PuzzleManager.Instance.StopAmbiance();
+
         if (gameOverCanvas != null)
             gameOverCanvas.SetActive(true);
 

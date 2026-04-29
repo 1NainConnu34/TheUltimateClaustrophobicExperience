@@ -132,7 +132,7 @@ public class ElevatorButton : MonoBehaviour
         if (isExteriorButton)
         {
             isOpen = true;
-            Invoke(nameof(CloseDoors), 10f);
+            Invoke(nameof(CloseDoors), 5f);
             Invoke(nameof(ReleaseButton), 0.2f);
         }
         else if (isDoorButton)
