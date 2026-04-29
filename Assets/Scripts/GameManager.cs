@@ -607,6 +607,25 @@ public class GameManager : MonoBehaviour
             return;
         }
 
+        // Restart phase-1 music on good ending (puzzle solved)
+        if (phase == Phase.Resolution && !isBadEnding)
+        {
+            if (phase1MusicSource != null && phase1MusicClip != null)
+            {
+                if (phase1MusicSource.clip != phase1MusicClip)
+                    phase1MusicSource.clip = phase1MusicClip;
+
+                phase1MusicSource.loop = loopPhase1Music;
+                phase1MusicSource.volume = phase1MusicVolume;
+
+                if (!phase1MusicSource.isPlaying)
+                    phase1MusicSource.Play();
+            }
+
+            ApplyVentilationForPhase(phase);
+            return;
+        }
+
         if (phase1MusicSource != null && phase1MusicSource.isPlaying)
             phase1MusicSource.Stop();
 
